@@ -9,22 +9,23 @@ import { setIsPlaying, setCurrentTime, setDuration, setTrack } from '../../lib/f
 export function AudioEngine() {
   const dispatch = useDispatch();
   const { currentTrack, isPlaying, queue } = useSelector((state: RootState) => state.music);
+  
   const soundRef = useRef<Howl | null>(null);
-  const rafRef = useRef<number | null>(null);
-
-  const step = () => {
-    if (soundRef.current && soundRef.current.playing()) {
-      dispatch(setCurrentTime(soundRef.current.seek() as number));
-      rafRef.current = requestAnimationFrame(step);
-    }
-  };
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Use a ref for the queue to prevent closure staleness without causing re-renders/re-initializations
+  const queueRef = useRef(queue);
+  useEffect(() => {
+    queueRef.current = queue;
+  }, [queue]);
 
   useEffect(() => {
     if (!currentTrack) return;
 
+    // Cleanup previous instance completely
     if (soundRef.current) {
       soundRef.current.unload();
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (intervalRef.current) clearInterval(intervalRef.current);
     }
 
     const sound = new Howl({
@@ -34,25 +35,32 @@ export function AudioEngine() {
       onplay: () => {
         dispatch(setIsPlaying(true));
         dispatch(setDuration(sound.duration()));
-        rafRef.current = requestAnimationFrame(step);
+        
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        intervalRef.current = setInterval(() => {
+          if (sound.playing()) {
+            dispatch(setCurrentTime(sound.seek() as number));
+          }
+        }, 500); // 500ms instead of 60fps to prevent maximum render depth
       },
       onpause: () => {
-        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        if (intervalRef.current) clearInterval(intervalRef.current);
         dispatch(setIsPlaying(false));
       },
       onend: () => {
-        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        if (intervalRef.current) clearInterval(intervalRef.current);
         dispatch(setIsPlaying(false));
         dispatch(setCurrentTime(0));
         
-        const currentIndex = queue.findIndex(t => t.id === currentTrack.id);
-        if (currentIndex !== -1 && currentIndex < queue.length - 1) {
-             const nextTrack = queue[currentIndex + 1];
+        const q = queueRef.current;
+        const currentIndex = q.findIndex(t => t.id === currentTrack.id);
+        if (currentIndex !== -1 && currentIndex < q.length - 1) {
+             const nextTrack = q[currentIndex + 1];
              dispatch(setTrack(nextTrack));
         }
       },
       onstop: () => {
-        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        if (intervalRef.current) clearInterval(intervalRef.current);
         dispatch(setCurrentTime(0));
       },
       onload: () => {
@@ -68,10 +76,10 @@ export function AudioEngine() {
 
     return () => {
       sound.unload();
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTrack]);
+  }, [currentTrack]); // Explicitly omitted `dispatch` and `isPlaying` to prevent remount loops
 
   useEffect(() => {
     if (soundRef.current) {
@@ -97,4 +105,3 @@ export function AudioEngine() {
 
   return null;
 }
-

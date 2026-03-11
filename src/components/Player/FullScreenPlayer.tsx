@@ -50,14 +50,21 @@ export function FullScreenPlayer() {
     async function fetchLyrics() {
       try {
         const res = await fetch(`https://saavn.sumit.co/api/lyrics?id=${currentTrack?.id}`);
+        if (!res.ok) {
+           if (isMounted) setLyrics(null);
+           return;
+        }
         const data = await res.json();
         if (data.success && data.data && data.data.lyrics && isMounted) {
           const lrcText = data.data.lyrics;
           const parsed = parseLrc(lrcText);
           setLyrics(parsed);
+        } else {
+           if (isMounted) setLyrics(null);
         }
       } catch (error) {
-        console.error('Failed to fetch lyrics', error);
+        console.warn('Lyrics not available or failed to fetch', error);
+        if (isMounted) setLyrics(null);
       }
     }
     fetchLyrics();
@@ -259,7 +266,7 @@ export function FullScreenPlayer() {
                 />
               );
             }) : (
-              <p className="text-white/30 text-center font-bold text-xl">Loading lyrics / Not available</p>
+              <p className="text-white/30 text-center font-bold text-xl">Lyrics not available</p>
             )}
              <div className="h-32" /> {/* Bottom Padding */}
           </div>

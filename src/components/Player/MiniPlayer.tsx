@@ -14,7 +14,7 @@ export function MiniPlayer() {
   // Verification log to ensure it's not remounting abruptly on route changes
   useEffect(() => {
     if (currentTrack) {
-      console.log('MiniPlayer active:', currentTrack.title, 'Playing:', isPlaying);
+      // console.log('MiniPlayer active:', currentTrack.title, 'Playing:', isPlaying);
     }
   }, [currentTrack, isPlaying]);
 

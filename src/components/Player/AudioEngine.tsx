@@ -83,5 +83,18 @@ export function AudioEngine() {
     }
   }, [isPlaying]);
 
+  useEffect(() => {
+    const handleSeek = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (soundRef.current) {
+        soundRef.current.seek(customEvent.detail);
+        dispatch(setCurrentTime(customEvent.detail));
+      }
+    };
+    window.addEventListener('SEEK_AUDIO', handleSeek);
+    return () => window.removeEventListener('SEEK_AUDIO', handleSeek);
+  }, [dispatch]);
+
   return null;
 }
+

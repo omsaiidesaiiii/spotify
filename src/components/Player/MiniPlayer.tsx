@@ -2,7 +2,7 @@
 
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../lib/store';
-import { setIsPlaying } from '../../lib/features/music/musicSlice';
+import { setIsPlaying, togglePlayer } from '../../lib/features/music/musicSlice';
 import { Play, Pause } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect } from 'react';
@@ -24,11 +24,16 @@ export function MiniPlayer() {
     <AnimatePresence>
       {currentTrack && (
         <motion.div
+          onClick={(e: React.MouseEvent) => {
+             // Avoid opening if clicking the play/pause button
+             if ((e.target as HTMLElement).closest('button')) return;
+             dispatch(togglePlayer());
+          }}
           initial={{ y: 200, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 200, opacity: 0 }}
           transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
-          className="glass fixed left-2 right-2 rounded-xl flex flex-col z-40 shadow-2xl overflow-hidden"
+          className="glass fixed left-2 right-2 rounded-xl flex flex-col z-40 shadow-2xl overflow-hidden cursor-pointer"
           style={{ bottom: 'calc(84px + env(safe-area-inset-bottom))' }}
         >
           {/* Progress Bar */}

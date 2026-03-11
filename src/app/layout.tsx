@@ -6,6 +6,8 @@ import { ViewTransitions } from 'next-view-transitions';
 import { BottomNav } from '../components/Navigation/BottomNav';
 import { MiniPlayer } from '../components/Player/MiniPlayer';
 import { AudioEngine } from '../components/Player/AudioEngine';
+import { FullScreenPlayer } from '../components/Player/FullScreenPlayer';
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,7 +41,9 @@ export default function RootLayout({
               {children}
             </div>
             <MiniPlayer />
+            <FullScreenPlayer />
             <BottomNav />
+
           </StoreProvider>
         </body>
       </html>

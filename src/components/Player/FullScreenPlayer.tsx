@@ -16,13 +16,11 @@ export function FullScreenPlayer() {
   );
   
   const [dominantColor, setDominantColor] = useState('rgb(20, 20, 20)');
-  const [lyrics, setLyrics] = useState<{ time: number; text: string }[] | null>(null);
   
   const [isSliding, setIsSliding] = useState(false);
   const [sliderValue, setSliderValue] = useState(0);
   const [isDownloaded, setIsDownloaded] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const lyricsContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (currentTrack) {
@@ -52,59 +50,6 @@ export function FullScreenPlayer() {
       }
     };
   }, [currentTrack]);
-
-  useEffect(() => {
-    if (!currentTrack) return;
-    setLyrics(null);
-    let isMounted = true;
-
-    async function fetchLyrics() {
-      try {
-        const res = await fetch(`https://saavn.sumit.co/api/lyrics?id=${currentTrack?.id}`);
-        if (!res.ok) {
-           if (isMounted) setLyrics(null);
-           return;
-        }
-        const data = await res.json();
-        if (data.success && data.data && data.data.lyrics && isMounted) {
-          const lrcText = data.data.lyrics;
-          const parsed = parseLrc(lrcText);
-          setLyrics(parsed);
-        } else {
-           if (isMounted) setLyrics(null);
-        }
-      } catch (error) {
-        console.warn('Lyrics not available or failed to fetch', error);
-        if (isMounted) setLyrics(null);
-      }
-    }
-    fetchLyrics();
-
-    return () => { isMounted = false; };
-  }, [currentTrack]);
-
-  const parseLrc = (lrc: string) => {
-    const actualLines = lrc.replace(/<br>/g, '\n').split('\n');
-    const hasTimestamps = /\[\d{2}:\d{2}\.\d{2,3}\]/.test(lrc);
-    if (!hasTimestamps) {
-       return actualLines.map(line => ({ time: 0, text: line }));
-    }
-
-    const regex = /\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/;
-    const parsed = actualLines.map(line => {
-      const match = regex.exec(line);
-      if (match) {
-        const min = parseInt(match[1]);
-        const sec = parseInt(match[2]);
-        const ms = parseInt(match[3]);
-        const time = min * 60 + sec + ms / 1000;
-        return { time, text: match[4].trim() };
-      }
-      return null;
-    }).filter(Boolean) as {time: number, text: string}[];
-
-    return parsed;
-  };
 
   const formatTime = (time: number) => {
     const min = Math.floor(time / 60);
@@ -181,22 +126,6 @@ export function FullScreenPlayer() {
       setIsDownloading(false);
     }
   };
-
-  // Auto-scroll logic for lyrics
-  useEffect(() => {
-    if (!lyricsContainerRef.current || !lyrics) return;
-    const activeIndex = lyrics.findIndex((line, i) => {
-      const nextTime = lyrics[i + 1]?.time || Infinity;
-      return currentTime >= line.time && currentTime < nextTime;
-    });
-
-    if (activeIndex !== -1) {
-      const activeEl = lyricsContainerRef.current.children[activeIndex] as HTMLElement;
-      if (activeEl) {
-        activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }
-  }, [currentTime, lyrics]);
 
   return (
     <AnimatePresence>
@@ -316,24 +245,7 @@ export function FullScreenPlayer() {
             </button>
           </div>
 
-          {/* Synced Lyrics Section */}
-          <div ref={lyricsContainerRef} className="flex-1 mt-8 overflow-y-auto px-8 space-y-4 pb-[env(safe-area-inset-bottom)] fade-mask relative no-scrollbar">
-             <div className="h-10" /> {/* Top Padding */}
-            {lyrics ? lyrics.map((line, i) => {
-              const nextTime = lyrics[i + 1]?.time || Infinity;
-              const isActive = currentTime >= line.time && currentTime < nextTime;
-              return (
-                <p 
-                  key={i} 
-                  className={`text-2xl font-bold transition-all duration-300 text-center ${isActive ? 'text-white opacity-100 scale-105 shadow-glow' : 'text-white/30 scale-100'}`} 
-                  dangerouslySetInnerHTML={{ __html: line.text || '&nbsp;' }} 
-                />
-              );
-            }) : (
-              <p className="text-white/30 text-center font-bold text-xl">Lyrics not available</p>
-            )}
-             <div className="h-32" /> {/* Bottom Padding */}
-          </div>
+          <div className="flex-1" /> {/* Spacer to balance layout */}
         </motion.div>
       )}
     </AnimatePresence>

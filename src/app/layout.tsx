@@ -7,6 +7,7 @@ import { BottomNav } from '../components/Navigation/BottomNav';
 import { MiniPlayer } from '../components/Player/MiniPlayer';
 import { AudioEngine } from '../components/Player/AudioEngine';
 import { FullScreenPlayer } from '../components/Player/FullScreenPlayer';
+import { OfflineGuard } from '../components/Navigation/OfflineGuard';
 
 
 const geistSans = Geist({
@@ -44,9 +45,11 @@ export default function RootLayout({
         >
           <StoreProvider>
             <AudioEngine />
-            <div className="h-screen w-screen overflow-y-auto pb-32">
-              {children}
-            </div>
+            <OfflineGuard>
+              <div className="h-screen w-screen overflow-y-auto pb-32">
+                {children}
+              </div>
+            </OfflineGuard>
             <MiniPlayer />
             <FullScreenPlayer />
             <BottomNav />

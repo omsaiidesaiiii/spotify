@@ -18,7 +18,7 @@ export function OfflineGuard({ children }: { children: React.ReactNode }) {
     window.addEventListener('offline', handleOffline);
 
     // Initial check
-    if (!navigator.onLine) {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
       setIsOffline(true);
     }
 
@@ -28,7 +28,8 @@ export function OfflineGuard({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const isDownloadsPage = pathname === '/downloads';
+  // Check if we are on the downloads route or its subpaths
+  const isDownloadsPage = pathname === '/downloads' || pathname.startsWith('/downloads/');
 
   return (
     <>

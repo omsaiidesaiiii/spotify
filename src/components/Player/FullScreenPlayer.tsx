@@ -5,7 +5,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RootState } from '../../lib/store';
 import { setIsPlaying, togglePlayer, setTrack, setCurrentTime } from '../../lib/features/music/musicSlice';
-import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, ChevronDown } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, ChevronDown, Check, Download } from 'lucide-react';
 import { getColor } from 'colorthief';
 
 export function FullScreenPlayer() {
@@ -19,7 +19,18 @@ export function FullScreenPlayer() {
   
   const [isSliding, setIsSliding] = useState(false);
   const [sliderValue, setSliderValue] = useState(0);
+  const [isDownloaded, setIsDownloaded] = useState(false);
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (currentTrack) {
+      const saved = localStorage.getItem('downloaded_songs');
+      if (saved) {
+        const songs = JSON.parse(saved);
+        setIsDownloaded(songs.some((s: any) => s.id === currentTrack.id));
+      }
+    }
+  }, [currentTrack]);
 
   useEffect(() => {
     if (!isSliding) setSliderValue(currentTime);
@@ -126,6 +137,22 @@ export function FullScreenPlayer() {
     if (idx > 0) {
       dispatch(setTrack(queue[idx - 1]));
     }
+  };
+
+  const toggleDownload = () => {
+    if (!currentTrack) return;
+    const saved = localStorage.getItem('downloaded_songs');
+    let songs = saved ? JSON.parse(saved) : [];
+    
+    if (isDownloaded) {
+      songs = songs.filter((s: any) => s.id !== currentTrack.id);
+      setIsDownloaded(false);
+    } else {
+      songs.push(currentTrack);
+      setIsDownloaded(true);
+    }
+    
+    localStorage.setItem('downloaded_songs', JSON.stringify(songs));
   };
 
   // Auto-scroll logic for lyrics
@@ -235,8 +262,11 @@ export function FullScreenPlayer() {
 
           {/* Playback Controls */}
           <div className="px-6 mt-6 flex items-center justify-between">
-            <button className="p-3 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 transition-colors cursor-pointer">
-              <Shuffle size={20} className="text-white/70" />
+            <button 
+              onClick={toggleDownload}
+              className="p-3 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 transition-colors cursor-pointer"
+            >
+              {isDownloaded ? <Check size={20} className="text-green-500" /> : <Download size={20} className="text-white/70" />}
             </button>
             
             <div className="flex items-center gap-6">

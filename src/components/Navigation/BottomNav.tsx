@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, Search, Library } from 'lucide-react';
+import { Home, Search, Library, Download } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { Link } from 'next-view-transitions';
 import clsx from 'clsx';
@@ -13,6 +13,7 @@ export function BottomNav() {
     { name: 'Home', href: '/home', icon: Home },
     { name: 'Search', href: '/search', icon: Search },
     { name: 'Library', href: '/library', icon: Library },
+    { name: 'Downloads', href: '/downloads', icon: Download },
   ];
 
   return (

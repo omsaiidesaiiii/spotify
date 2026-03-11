@@ -64,6 +64,16 @@ export default function SearchPage() {
         <div className="text-zinc-400 text-center py-10 animate-pulse">Searching...</div>
       )}
 
+      {!query && !loading && results.length === 0 && (
+        <div className="mt-8 grid grid-cols-2 gap-4 pb-24">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="h-24 glass rounded-xl flex items-center justify-center font-semibold text-white">
+              Category {i + 1}
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="flex flex-col gap-3 pb-24">
         {results.map((song, i) => (
           <div 

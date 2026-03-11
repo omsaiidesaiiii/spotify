@@ -1,65 +1,47 @@
-import Image from "next/image";
+'use client';
+
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState } from '../src/lib/store';
+import { setIsPlaying, togglePlayer } from '../src/lib/features/music/musicSlice';
 
 export default function Home() {
+  const dispatch = useDispatch();
+  const { isPlaying, isPlayerOpen } = useSelector((state: RootState) => state.music);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="flex min-h-screen flex-col items-center justify-center gap-8 p-8">
+      <h1 className="text-4xl font-bold">Project Sound-Wave</h1>
+      
+      <div className="glass p-8 rounded-3xl flex flex-col items-center gap-6 text-center max-w-md w-full">
+        <h2 className="text-2xl font-semibold">Redux State Test</h2>
+        
+        <div className="flex flex-col gap-2 w-full text-lg">
+          <div className="flex justify-between w-full">
+            <span className="text-zinc-400">Is Playing:</span>
+            <span className={isPlaying ? "text-green-400 font-bold" : "text-white font-bold"}>{isPlaying ? 'Yes' : 'No'}</span>
+          </div>
+          <div className="flex justify-between w-full">
+            <span className="text-zinc-400">Drawer Open:</span>
+            <span className={isPlayerOpen ? "text-blue-400 font-bold" : "text-white font-bold"}>{isPlayerOpen ? 'Yes' : 'No'}</span>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        
+        <div className="flex flex-col gap-4 mt-4 w-full">
+          <button 
+            className="w-full rounded-full bg-white text-black px-6 py-4 font-semibold hover:bg-zinc-200 transition-colors"
+            onClick={() => dispatch(setIsPlaying(!isPlaying))}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            {isPlaying ? 'Pause' : 'Play'}
+          </button>
+          
+          <button 
+            className="w-full rounded-full bg-zinc-800 text-white border border-zinc-700 px-6 py-4 font-semibold hover:bg-zinc-700 transition-colors"
+            onClick={() => dispatch(togglePlayer())}
           >
-            Documentation
-          </a>
+            Toggle Player Drawer
+          </button>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

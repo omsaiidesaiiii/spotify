@@ -13,6 +13,8 @@ export interface MusicState {
   isPlaying: boolean;
   queue: Track[];
   isPlayerOpen: boolean;
+  currentTime: number;
+  duration: number;
 }
 
 const initialState: MusicState = {
@@ -20,6 +22,8 @@ const initialState: MusicState = {
   isPlaying: false,
   queue: [],
   isPlayerOpen: false,
+  currentTime: 0,
+  duration: 0,
 };
 
 export const musicSlice = createSlice({
@@ -38,9 +42,15 @@ export const musicSlice = createSlice({
     setQueue: (state, action: PayloadAction<Track[]>) => {
       state.queue = action.payload;
     },
+    setCurrentTime: (state, action: PayloadAction<number>) => {
+      state.currentTime = action.payload;
+    },
+    setDuration: (state, action: PayloadAction<number>) => {
+      state.duration = action.payload;
+    },
   },
 });
 
-export const { setTrack, setIsPlaying, togglePlayer, setQueue } = musicSlice.actions;
+export const { setTrack, setIsPlaying, togglePlayer, setQueue, setCurrentTime, setDuration } = musicSlice.actions;
 
 export default musicSlice.reducer;

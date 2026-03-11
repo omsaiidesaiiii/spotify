@@ -5,6 +5,7 @@ import StoreProvider from "./StoreProvider";
 import { ViewTransitions } from 'next-view-transitions';
 import { BottomNav } from '../components/Navigation/BottomNav';
 import { MiniPlayer } from '../components/Player/MiniPlayer';
+import { AudioEngine } from '../components/Player/AudioEngine';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,6 +34,7 @@ export default function RootLayout({
           className={`${geistSans.variable} ${geistMono.variable} antialiased overflow-hidden`}
         >
           <StoreProvider>
+            <AudioEngine />
             <div className="h-screen w-screen overflow-y-auto pb-32">
               {children}
             </div>

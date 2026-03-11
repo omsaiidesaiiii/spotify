@@ -5,6 +5,7 @@ import { useDispatch } from 'react-redux';
 import { setTrack, setIsPlaying, setQueue } from '../../../lib/features/music/musicSlice';
 import { formatTrack, formatCollection } from '../../../lib/utils/api-utils';
 import { Play } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface HomeData {
   trending: {
@@ -19,6 +20,7 @@ export default function HomePage() {
   const [data, setData] = useState<HomeData | null>(null);
   const [loading, setLoading] = useState(true);
   const dispatch = useDispatch();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchHomeData = async () => {
@@ -123,7 +125,7 @@ export default function HomePage() {
             {data.playlists.map((playlist: any) => {
               const item = formatCollection(playlist);
               return (
-                <div key={playlist.id} onClick={() => playCollection(playlist.id)} className="w-44 shrink-0 group cursor-pointer">
+                <div key={playlist.id} onClick={() => router.push(`/playlist/${playlist.id}`)} className="w-44 shrink-0 group cursor-pointer">
                   <div className="aspect-square rounded-2xl overflow-hidden glass mb-3 relative overflow-hidden transition-all group-hover:shadow-[0_0_30px_rgba(255,255,255,0.1)]">
                     <img src={item.image} alt="" className="w-full h-full object-cover" />
                   </div>
@@ -144,7 +146,7 @@ export default function HomePage() {
             {data.charts.map((chart: any) => {
               const item = formatCollection(chart);
               return (
-                <div key={chart.id} onClick={() => playCollection(chart.id)} className="w-36 shrink-0 group cursor-pointer">
+                <div key={chart.id} onClick={() => router.push(`/playlist/${chart.id}`)} className="w-36 shrink-0 group cursor-pointer">
                   <div className="aspect-square rounded-full overflow-hidden glass mb-3 border-4 border-transparent group-hover:border-white/10 transition-all">
                     <img src={item.image} alt="" className="w-full h-full object-cover scale-110 group-hover:scale-100 transition-transform duration-500" />
                   </div>

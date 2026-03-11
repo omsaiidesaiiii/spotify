@@ -5,6 +5,7 @@ import { useDispatch } from 'react-redux';
 import { setTrack, setIsPlaying, setQueue, Track } from '../../../lib/features/music/musicSlice';
 import { formatCollection, formatTrack } from '../../../lib/utils/api-utils';
 import { Search as SearchIcon, Play } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function SearchPage() {
   const [query, setQuery] = useState('');
@@ -12,8 +13,12 @@ export default function SearchPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingCats, setLoadingCats] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   
   const dispatch = useDispatch();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -37,20 +42,38 @@ export default function SearchPage() {
   }, []);
 
   useEffect(() => {
-    const fetchResults = async () => {
+    const fetchResults = async (isLoadMore = false) => {
       if (!query.trim()) {
         setResults([]);
+        setPage(1);
+        setHasMore(true);
         return;
       }
-      setLoading(true);
+
+      if (!isLoadMore) {
+        setLoading(true);
+        setPage(1);
+      }
+
       try {
-        const res = await fetch(`/api/search?query=${encodeURIComponent(query)}`);
+        const currentPage = isLoadMore ? page + 1 : 1;
+        const res = await fetch(`/api/search?query=${encodeURIComponent(query)}&page=${currentPage}&limit=15`);
         const data = await res.json();
-        setResults(data.results || []);
+        
+        const newResults = data.results || [];
+        if (isLoadMore) {
+          setResults(prev => [...prev, ...newResults]);
+          setPage(currentPage);
+        } else {
+          setResults(newResults);
+        }
+
+        setHasMore(newResults.length === 15);
       } catch (e) {
         console.error(e);
       } finally {
         setLoading(false);
+        setLoadingMore(false);
       }
     };
 
@@ -60,6 +83,28 @@ export default function SearchPage() {
 
     return () => clearTimeout(debounceTimer);
   }, [query]);
+
+  const loadMore = async () => {
+    if (loadingMore || !hasMore) return;
+    
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const res = await fetch(`/api/search?query=${encodeURIComponent(query)}&page=${nextPage}&limit=15`);
+      const data = await res.json();
+      
+      const newResults = data.results || [];
+      if (newResults.length > 0) {
+        setResults(prev => [...prev, ...newResults]);
+        setPage(nextPage);
+      }
+      setHasMore(newResults.length === 15);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const handlePlaySong = (track: Track, index: number) => {
     dispatch(setQueue(results));
@@ -119,7 +164,7 @@ export default function SearchPage() {
               categories.map((cat, i) => (
                 <div 
                   key={cat.id || i} 
-                  onClick={() => playCollection(cat.id)}
+                  onClick={() => router.push(`/playlist/${cat.id}`)}
                   className="h-32 glass rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden group cursor-pointer hover:bg-white/[0.08] transition-all active:scale-95"
                 >
                   <img 
@@ -140,7 +185,7 @@ export default function SearchPage() {
         <div className="flex flex-col gap-3">
           {results.map((song, i) => (
             <div 
-              key={song.id} 
+              key={`${song.id}-${i}`} 
               onClick={() => handlePlaySong(song, i)}
               className="glass rounded-2xl p-3 flex items-center gap-4 cursor-pointer hover:bg-white/10 transition-colors group"
             >
@@ -157,6 +202,16 @@ export default function SearchPage() {
               </div>
             </div>
           ))}
+
+          {hasMore && (
+            <button 
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="mt-4 w-full py-4 glass rounded-2xl text-white font-bold hover:bg-white/[0.08] transition-all disabled:opacity-50"
+            >
+              {loadingMore ? 'Loading more...' : 'Load more'}
+            </button>
+          )}
         </div>
       )}
 

@@ -3,13 +3,15 @@ import { NextResponse } from 'next/server';
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get('query');
+  const page = searchParams.get('page') || '1';
+  const limit = searchParams.get('limit') || '15';
 
   if (!query) {
     return NextResponse.json({ error: 'Query is required' }, { status: 400 });
   }
 
   try {
-    const res = await fetch(`https://saavn.sumit.co/api/search/songs?query=${encodeURIComponent(query)}`);
+    const res = await fetch(`https://saavn.sumit.co/api/search/songs?query=${encodeURIComponent(query)}&page=${page}&limit=${limit}`);
     const data = await res.json();
 
     if (data.success && data.data && data.data.results) {

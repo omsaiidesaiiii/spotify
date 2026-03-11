@@ -5,8 +5,9 @@ import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RootState } from '../../lib/store';
 import { setIsPlaying, togglePlayer, setTrack, setCurrentTime } from '../../lib/features/music/musicSlice';
-import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, ChevronDown, Check, Download } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, ChevronDown, Check, Download, Loader2 } from 'lucide-react';
 import { getColor } from 'colorthief';
+import { offlineDB } from '../../lib/utils/offline-db';
 
 export function FullScreenPlayer() {
   const dispatch = useDispatch();
@@ -20,15 +21,14 @@ export function FullScreenPlayer() {
   const [isSliding, setIsSliding] = useState(false);
   const [sliderValue, setSliderValue] = useState(0);
   const [isDownloaded, setIsDownloaded] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (currentTrack) {
-      const saved = localStorage.getItem('downloaded_songs');
-      if (saved) {
-        const songs = JSON.parse(saved);
-        setIsDownloaded(songs.some((s: any) => s.id === currentTrack.id));
-      }
+      offlineDB.getSong(currentTrack.id).then(song => {
+        setIsDownloaded(!!song);
+      });
     }
   }, [currentTrack]);
 
@@ -139,20 +139,47 @@ export function FullScreenPlayer() {
     }
   };
 
-  const toggleDownload = () => {
-    if (!currentTrack) return;
-    const saved = localStorage.getItem('downloaded_songs');
-    let songs = saved ? JSON.parse(saved) : [];
+  const toggleDownload = async () => {
+    if (!currentTrack || isDownloading) return;
     
     if (isDownloaded) {
-      songs = songs.filter((s: any) => s.id !== currentTrack.id);
+      await offlineDB.deleteSong(currentTrack.id);
       setIsDownloaded(false);
-    } else {
-      songs.push(currentTrack);
-      setIsDownloaded(true);
+      return;
     }
-    
-    localStorage.setItem('downloaded_songs', JSON.stringify(songs));
+
+    try {
+      setIsDownloading(true);
+      
+      // Fetch audio and image as blobs
+      const [audioRes, imgRes] = await Promise.all([
+        fetch(currentTrack.url),
+        fetch(currentTrack.image)
+      ]);
+
+      if (!audioRes.ok || !imgRes.ok) throw new Error('Download failed');
+
+      const [audioBlob, imageBlob] = await Promise.all([
+        audioRes.blob(),
+        imgRes.blob()
+      ]);
+
+      await offlineDB.saveSong({
+        id: currentTrack.id,
+        title: currentTrack.title,
+        artist: currentTrack.artist,
+        audioBlob,
+        imageBlob,
+        duration,
+      });
+
+      setIsDownloaded(true);
+    } catch (err) {
+      console.error('Download error:', err);
+      alert('Failed to download for offline mode. Check your connection.');
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   // Auto-scroll logic for lyrics
@@ -264,9 +291,16 @@ export function FullScreenPlayer() {
           <div className="px-6 mt-6 flex items-center justify-between">
             <button 
               onClick={toggleDownload}
-              className="p-3 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 transition-colors cursor-pointer"
+              disabled={isDownloading}
+              className="p-3 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 transition-colors cursor-pointer disabled:opacity-50"
             >
-              {isDownloaded ? <Check size={20} className="text-green-500" /> : <Download size={20} className="text-white/70" />}
+              {isDownloading ? (
+                <Loader2 size={20} className="text-white/70 animate-spin" />
+              ) : isDownloaded ? (
+                <Check size={20} className="text-green-500" />
+              ) : (
+                <Download size={20} className="text-white/70" />
+              )}
             </button>
             
             <div className="flex items-center gap-6">

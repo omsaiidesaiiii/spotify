@@ -5,6 +5,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Howl } from 'howler';
 import { RootState } from '../../lib/store';
 import { setIsPlaying, setCurrentTime, setDuration, setTrack } from '../../lib/features/music/musicSlice';
+import { offlineDB } from '../../lib/utils/offline-db';
 
 export function AudioEngine() {
   const dispatch = useDispatch();
@@ -28,55 +29,73 @@ export function AudioEngine() {
       if (intervalRef.current) clearInterval(intervalRef.current);
     }
 
-    const sound = new Howl({
-      src: [currentTrack.url],
-      html5: true, 
-      format: ['mp4', 'mp3', 'm4a'],
-      onplay: () => {
-        dispatch(setIsPlaying(true));
-        dispatch(setDuration(sound.duration()));
-        
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        intervalRef.current = setInterval(() => {
-          if (sound.playing()) {
-            dispatch(setCurrentTime(sound.seek() as number));
-          }
-        }, 500); // 500ms instead of 60fps to prevent maximum render depth
-      },
-      onpause: () => {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        dispatch(setIsPlaying(false));
-      },
-      onend: () => {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        dispatch(setIsPlaying(false));
-        dispatch(setCurrentTime(0));
-        
-        const q = queueRef.current;
-        const currentIndex = q.findIndex(t => t.id === currentTrack.id);
-        if (currentIndex !== -1 && currentIndex < q.length - 1) {
-             const nextTrack = q[currentIndex + 1];
-             dispatch(setTrack(nextTrack));
+    const setupAudio = async () => {
+      let activeUrl = currentTrack.url;
+      let isLocal = false;
+
+      try {
+        const offlineSong = await offlineDB.getSong(currentTrack.id);
+        if (offlineSong?.audioBlob) {
+          activeUrl = URL.createObjectURL(offlineSong.audioBlob);
+          isLocal = true;
         }
-      },
-      onstop: () => {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        dispatch(setCurrentTime(0));
-      },
-      onload: () => {
-         dispatch(setDuration(sound.duration()));
+      } catch (e) {
+        console.warn('Offline DB error:', e);
       }
+
+      const sound = new Howl({
+        src: [activeUrl],
+        html5: !isLocal, // HTML5 true for streamers, false for local blobs to allow precise manipulation
+        format: ['mp4', 'mp3', 'm4a'],
+        onplay: () => {
+          dispatch(setIsPlaying(true));
+          dispatch(setDuration(sound.duration()));
+          
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          intervalRef.current = setInterval(() => {
+            if (sound.playing()) {
+              dispatch(setCurrentTime(sound.seek() as number));
+            }
+          }, 500); 
+        },
+        onpause: () => {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          dispatch(setIsPlaying(false));
+        },
+        onend: () => {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          dispatch(setIsPlaying(false));
+          dispatch(setCurrentTime(0));
+          
+          const q = queueRef.current;
+          const currentIndex = q.findIndex(t => t.id === currentTrack.id);
+          if (currentIndex !== -1 && currentIndex < q.length - 1) {
+              const nextTrack = q[currentIndex + 1];
+              dispatch(setTrack(nextTrack));
+          }
+        },
+        onload: () => {
+           dispatch(setDuration(sound.duration()));
+        }
+      });
+
+      soundRef.current = sound;
+      if (isPlaying) sound.play();
+
+      return () => {
+        if (isLocal) URL.revokeObjectURL(activeUrl);
+      };
+    };
+
+    let cleanupObjectURL: (() => void) | undefined;
+    setupAudio().then(cleanup => {
+      cleanupObjectURL = cleanup;
     });
 
-    soundRef.current = sound;
-
-    if (isPlaying) {
-      sound.play();
-    }
-
     return () => {
-      sound.unload();
+      if (soundRef.current) soundRef.current.unload();
       if (intervalRef.current) clearInterval(intervalRef.current);
+      if (cleanupObjectURL) cleanupObjectURL();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTrack]); // Explicitly omitted `dispatch` and `isPlaying` to prevent remount loops

@@ -4,29 +4,61 @@ import { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { setTrack, setIsPlaying, setQueue, Track } from '../../../lib/features/music/musicSlice';
 import { Download, Play, Trash2 } from 'lucide-react';
+import { offlineDB, OfflineSong } from '../../../lib/utils/offline-db';
 
 export default function DownloadsPage() {
-  const [downloadedSongs, setDownloadedSongs] = useState<Track[]>([]);
+  const [downloadedSongs, setDownloadedSongs] = useState<OfflineSong[]>([]);
+  const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
   const dispatch = useDispatch();
 
   useEffect(() => {
-    const saved = localStorage.getItem('downloaded_songs');
-    if (saved) {
-      setDownloadedSongs(JSON.parse(saved));
-    }
+    const loadSongs = async () => {
+      const songs = await offlineDB.getAllSongs();
+      setDownloadedSongs(songs);
+      
+      // Create object URLs for images
+      const urls: Record<string, string> = {};
+      songs.forEach(song => {
+        urls[song.id] = URL.createObjectURL(song.imageBlob);
+      });
+      setImageUrls(urls);
+    };
+
+    loadSongs();
+
+    return () => {
+      // Cleanup object URLs to prevent memory leaks
+      Object.values(imageUrls).forEach(URL.revokeObjectURL);
+    };
   }, []);
 
-  const handlePlaySong = (song: Track) => {
-    dispatch(setQueue(downloadedSongs));
-    dispatch(setTrack(song));
+  const handlePlaySong = (song: OfflineSong) => {
+    // Convert OfflineSong back to Track for the reducer/engine
+    const trackList: Track[] = downloadedSongs.map(s => ({
+      id: s.id,
+      title: s.title,
+      artist: s.artist,
+      image: imageUrls[s.id] || '',
+      url: '', // AudioEngine will fetch from DB using ID
+    }));
+
+    const currentTrack = trackList.find(t => t.id === song.id)!;
+    
+    dispatch(setQueue(trackList));
+    dispatch(setTrack(currentTrack));
     dispatch(setIsPlaying(true));
   };
 
-  const removeDownload = (id: string, e: React.MouseEvent) => {
+  const removeDownload = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const updated = downloadedSongs.filter(s => s.id !== id);
-    setDownloadedSongs(updated);
-    localStorage.setItem('downloaded_songs', JSON.stringify(updated));
+    await offlineDB.deleteSong(id);
+    setDownloadedSongs(prev => prev.filter(s => s.id !== id));
+    if (imageUrls[id]) {
+      URL.revokeObjectURL(imageUrls[id]);
+      const newUrls = { ...imageUrls };
+      delete newUrls[id];
+      setImageUrls(newUrls);
+    }
   };
 
   return (
@@ -47,7 +79,7 @@ export default function DownloadsPage() {
               className="glass rounded-2xl p-3 flex items-center gap-4 cursor-pointer hover:bg-white/10 transition-colors group"
             >
               <div className="w-14 h-14 bg-zinc-800 rounded-xl overflow-hidden shrink-0 relative shadow-lg">
-                <img src={song.image} alt="" className="w-full h-full object-cover" />
+                <img src={imageUrls[song.id]} alt="" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                   <Play fill="white" className="text-white" size={20} />
                 </div>

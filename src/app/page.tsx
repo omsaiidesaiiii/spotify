@@ -1,8 +1,8 @@
 'use client';
 
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '../src/lib/store';
-import { setIsPlaying, togglePlayer } from '../src/lib/features/music/musicSlice';
+import { RootState } from '../lib/store';
+import { setIsPlaying, togglePlayer } from '../lib/features/music/musicSlice';
 
 export default function Home() {
   const dispatch = useDispatch();
